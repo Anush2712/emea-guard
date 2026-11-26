@@ -23,3 +23,17 @@ services:
         generateValue: true
       - key: EMEA_GUARD_SEED_ON_STARTUP
         value: "true"
+      - key: EMEA_GUARD_ENVIRONMENT
+        value: production
+      - key: EMEA_GUARD_CORS_ORIGINS
+        value: https://anush2712.github.io
+      - key: EMEA_GUARD_APP_BASE_URL
+        value: https://anush2712.github.io/emea-guard
+      # Forwarding headers are ignored by default. Configure trusted peer networks
+      # and a hop count only if the deployment has a verified ingress configuration.
+      # Password reset emails. Render's free tier blocks outbound SMTP, so use the Resend HTTPS API
+      # (free plan; create an API key at resend.com). On a paid instance you can use SMTP instead.
+      - key: EMEA_GUARD_RESEND_API_KEY
+        sync: false
+      - key: EMEA_GUARD_SMTP_FROM
+        sync: false

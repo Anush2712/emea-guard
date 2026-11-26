@@ -15,6 +15,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
     role: str
     full_name: str
+    username: str
 
 
 class ApprovalIn(BaseModel):

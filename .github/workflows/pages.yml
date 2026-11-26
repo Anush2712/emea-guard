@@ -34,6 +34,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Build static demo
         working-directory: frontend
+        env:
+          # Set the repository variable EMEA_GUARD_API_URL (e.g. https://emea-guard-api.onrender.com) to make the
+          # live site use the hosted API and PostgreSQL accounts instead of the bundled snapshot.
+          VITE_API_URL: ${{ vars.EMEA_GUARD_API_URL }}
         run: |
           npm ci
           npm test

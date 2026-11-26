@@ -1,6 +1,6 @@
 # 5-minute walkthrough
 
-Use the live demo (https://anush2712.github.io/emea-guard/) or `docker compose up` (http://localhost:8080). Sign in as **analyst / analyst123**.
+Use the live demo (https://anush2712.github.io/emea-guard/) or `docker compose up` (http://localhost:8080). Create an account (the first account on a fresh database is the admin).
 
 1. **Dashboard.** Residual risk per jurisdiction, coloured and labelled on the 4-level scale. Use the trend selector to highlight one jurisdiction against the others. Point out the priority gaps: each has an owner and an SLA date.
 2. **Access control → "JD scenario: Germany employee → Irish customer data" → Evaluate.** Walk the 10-step pipeline and the 20-rule table. Untick *Data owner* and re-evaluate: the decision becomes *Pending approval* (escalate rule `APR-002`).
@@ -10,7 +10,7 @@ Use the live demo (https://anush2712.github.io/emea-guard/) or `docker compose u
 6. **Control assessments.** 16 automated tests × 10 jurisdictions per cycle. Click a red cell to see the exact exceptions (evidence). Show the Governance rules tab: an admin can switch a rule off or change its severity at runtime.
 7. **Gaps & remediation.** Open a control gap, *Apply corrective action & resolve*, then *Run control tests now*: the control passes on retest (in the full stack, gaps auto-close on retest).
 8. **Risk & reports.** Driver decomposition per jurisdiction; download the Excel risk report (10 sheets built with Pandas) and the Plotly executive report.
-9. **Policies.** Draft a new version as analyst; sign in as admin to approve it (maker-checker).
+9. **Policies.** Draft a new version as one user; an admin who isn't the author approves it (maker-checker).
 10. **Audit trail → Verify chain integrity.** Every action above is in the hash-chained log.
 
 ## Talking points

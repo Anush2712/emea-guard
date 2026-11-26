@@ -5,7 +5,7 @@
 [![CI](https://github.com/Anush2712/emea-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/Anush2712/emea-guard/actions/workflows/ci.yml)
 [![Live demo](https://github.com/Anush2712/emea-guard/actions/workflows/pages.yml/badge.svg)](https://anush2712.github.io/emea-guard/)
 
-**Live demo:** https://anush2712.github.io/emea-guard/ (sign in with one of the demo accounts shown on the login page)
+**Live site:** https://anush2712.github.io/emea-guard/ (create an account to sign in)
 
 EMEA Guard simulates the internal platform a multinational bank's EMEA Data Governance team would use to manage, monitor and protect data across ten jurisdictions. It brings together jurisdiction requirements, RBAC and access validation, data localisation, automated control testing, compliance gaps, remediation, risk reporting, policy lifecycle, stakeholder ownership and a tamper-evident audit trail in **one application with one data model**.
 
@@ -47,7 +47,7 @@ Every decision stores its full trace (each step and each rule's result and messa
 | Access requests | **330** evaluated by the engine + **60** legacy entitlements | `GET /api/metrics` |
 | Governance validation rules | **20** (configurable at runtime) | `test_rule_set_size` |
 | Automated control tests | **16** controls → **604** control assessments over 4 cycles | `test_platform_hits_target_metrics` |
-| Database entities | **24** (+2 association tables) | same |
+| Database entities | **25** (+2 association tables) | same |
 | Risk severity levels | **4** (Critical / High / Medium / Low) | `test_rating_scale_has_four_levels` |
 
 The seed is deterministic: SQLite and PostgreSQL produce identical results.
@@ -105,11 +105,13 @@ docker compose up --build
 - API docs (Swagger): http://localhost:8080/docs
 - The database seeds itself on first start (about 3 seconds).
 
-| User | Password | Can |
-|---|---|---|
-| `admin` | `admin123` | everything, including rule configuration, policy approval, jurisdiction onboarding |
-| `analyst` | `analyst123` | submit access requests, run control tests, manage gaps and tasks, draft policies |
-| `auditor` | `auditor123` | read-only, verify the audit chain, download reports |
+Open the app and choose **Create an account**. The first account on a fresh database becomes the **admin**; later sign-ups join as **analyst**, and the admin can change anyone's role on the Account page.
+
+| Role | Can |
+|---|---|
+| admin | everything, including users, rule configuration, policy approval, jurisdiction onboarding |
+| analyst | submit access requests, run control tests, manage gaps and tasks, draft policies |
+| auditor | read-only, verify the audit chain, download reports |
 
 ### Local development
 
@@ -117,8 +119,8 @@ docker compose up --build
 # backend (needs PostgreSQL, or set EMEA_GUARD_DATABASE_URL=sqlite:///./emea.db)
 cd backend
 pip install -r requirements-dev.txt
-uvicorn app.main:app --reload            # http://localhost:8000/docs
-pytest -q                                # 33 tests
+uvicorn app.main:app --reload --no-proxy-headers  # http://localhost:8000/docs
+pytest -q                                # 49 tests
 
 # frontend
 cd frontend
@@ -142,7 +144,7 @@ Other write actions in the demo (gap updates, policy drafts, rule toggles) apply
 
 ## Testing and CI
 
-- **33 backend tests:** pure engine unit tests (every rule family, severity matrix, adequacy model), API and workflow tests (auth and roles, the DE → IE scenario end to end, gap routing and deadlines, runtime rule reconfiguration, control cycle → remediation → retest → auto-close, audit tamper detection, report downloads, maker-checker, onboarding).
+- **49 backend tests:** account security (hashing, case-insensitive uniqueness, password change revoking sessions, atomic single-use reset links, identical forgot-password responses, no reset links in non-development logs, spoofed-header rate limiting, admin guard), pure engine unit tests (every rule family, severity matrix, adequacy model), API and workflow tests (auth and roles, the DE → IE scenario end to end, gap routing and deadlines, runtime rule reconfiguration, control cycle → remediation → retest → auto-close, audit tamper detection, report downloads, maker-checker, onboarding).
 - The suite runs on **SQLite and on PostgreSQL 16** in CI.
 - **Engine parity test** between Python and TypeScript.
 - **Docker smoke test**: CI builds the compose stack, waits for health checks and calls the API through nginx.
@@ -158,10 +160,10 @@ backend/
     routers/       core (auth, dashboard, jurisdictions), governance, reports
     seed/          reference.py (jurisdictions, requirements, controls, policies), generate.py (2026 replay)
     scripts/       export_demo.py (static snapshot + parity fixtures)
-    models.py      24 SQLAlchemy entities
+    models.py      25 SQLAlchemy entities
   tests/
 frontend/
-  src/pages/       11 screens
+  src/pages/       11 screens + sign-in, sign-up, password reset and account
   src/demo/        static demo adapter + TypeScript engine mirror + parity test
 docs/              architecture diagram, control engine and regulatory model notes, demo walkthrough
 ```
@@ -176,9 +178,41 @@ docs/              architecture diagram, control engine and regulatory model not
 ## Limitations and next steps
 
 - Regulatory content is simplified and synthetic; adequacy, residency and secrecy rules are modelled, not legally verified.
-- Schema is created with `create_all`; a production version would use Alembic migrations.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:d328e327924a1a2bf43e13d7047e944c4e8f0c0312995bd38d76b47b9bdc1b9f -->
+
+- Schema is created with `create_all`; a production version would use Alembic migrations. Existing databases from before account registration lack required user columns. For a disposable Compose demo, back up anything you need, then run `docker compose down -v` (deletes all project volume data) and `docker compose up --build` to recreate and reseed. For SQLite, stop the API and start it with a new database file. Register the first admin again. Environments that must retain data need a migration before upgrading.
+
+<!-- /coderabbit-ai-generated:v1 -->
 - Authentication is local JWT; an enterprise deployment would federate with the bank's IdP (SAML/OIDC) and derive roles from groups.
 - Control tests load each cycle's population into memory, which is fine at this scale; at bank scale they would be pushed down into SQL.
+
+---
+
+## Accounts and security
+
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:3856d1108102518a30e29f397ff1b70d0b5123427599c5fa38a3cabeaefb3840 -->
+
+- **Sign-up** with a username you choose, an email and a password (at least 10 characters, at most 72 UTF-8 bytes, with a letter and a number, not containing the username). Usernames are unique case-insensitively in the database itself (a lower-cased key column with a unique index), and emails are stored normalised. Sign-up returns a conflict for a taken username or email. Sign-ups are serialised (process lock plus a PostgreSQL advisory lock), so two simultaneous first sign-ups can't both become admin.
+
+<!-- /coderabbit-ai-generated:v1 -->
+- **Passwords are never stored**, only bcrypt hashes. Sign in with your username or your email.
+- **Change password** from the Account page (current password required). Changing or resetting a password, or disabling an account, bumps a token version, so every other signed-in session is signed out.
+- **Forgot password** sends a single-use link that expires in 30 minutes. Only the token's SHA-256 hash is stored, a new request invalidates older links, and using a link is an atomic conditional update, so two concurrent uses can't both succeed. A weak new password doesn't burn the link. The API response is identical for registered and unregistered emails, and the lookup runs after the response is sent, so timing doesn't reveal accounts either. **The link only ever travels by email**: never in an API response, and never written to logs outside an explicit development environment.
+- **Email delivery** via the Resend HTTPS API (`EMEA_GUARD_RESEND_API_KEY`) or any SMTP relay (`EMEA_GUARD_SMTP_*`). The API logs an error at startup if neither is configured outside development.
+- **Rate limiting** on sign-in, sign-up, forgot and reset uses the connection peer unless that peer matches `EMEA_GUARD_TRUSTED_PROXY_NETWORKS` (a JSON list of CIDRs) and `EMEA_GUARD_TRUSTED_PROXY_HOPS` is positive. Compose trusts only nginx, which overwrites the forwarded address. Deployments without verified ingress settings, including Render by default, can share a bucket among clients behind the same proxy. When starting Uvicorn yourself, pass `--no-proxy-headers` so the application can check the original connection peer.
+- **Admin user management** (roles, disabling accounts) with a last-active-admin guard that row-locks the admin rows before counting. Every account event goes to the hash-chained audit trail.
+
+### Connecting the live site to a real database
+
+GitHub Pages can only host static files. Until an API is connected, the live site runs on the bundled snapshot and keeps accounts **in your browser** (PBKDF2-hashed), and password reset by email is unavailable. To switch it to PostgreSQL-backed accounts with email resets:
+
+1. Deploy the API with the Render Blueprint (`render.yaml`) and set `EMEA_GUARD_RESEND_API_KEY` and `EMEA_GUARD_SMTP_FROM` in Render. Render's free tier blocks outbound SMTP, which is why the Blueprint uses Resend's HTTPS API.
+2. In GitHub: **Settings → Secrets and variables → Actions → Variables → New variable** named `EMEA_GUARD_API_URL` with the API URL (for example `https://emea-guard-api.onrender.com`).
+3. Re-run the *Deploy live demo* workflow. The site now signs up, signs in and resets passwords against the API.
 
 ---
 

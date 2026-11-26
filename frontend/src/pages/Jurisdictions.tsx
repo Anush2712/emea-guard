@@ -53,7 +53,7 @@ export default function Jurisdictions() {
         ]} />
       </Card>
 
-      <div className="grid mt" style={{ gridTemplateColumns: "1fr 360px", alignItems: "start" }}>
+      <div className="grid mt split split-360">
         <Card title={`Requirements applicable in ${j.name}`} sub={`${applicable.length} requirements`} right={<select value={cat} onChange={(e) => setCat(e.target.value)}><option value="">All categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>}>
           <dl className="kv" style={{ marginBottom: 12 }}>
             <dt>Data protection authority</dt><dd>{j.data_protection_authority}</dd>
