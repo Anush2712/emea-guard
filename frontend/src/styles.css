@@ -61,9 +61,6 @@ code, .mono { font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Conso
   border: 1px solid var(--glass-edge);
   box-shadow: var(--shadow);
 }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass, .card, .topbar, .sheet, .drawer, .auth-card, .popover { background: rgba(255, 255, 255, 0.94); }
-}
 
 /* ---------- app frame */
 .topbar {
@@ -272,6 +269,11 @@ pre.doc { white-space: pre-wrap; background: rgba(255, 255, 255, 0.6); border: 1
 .pw { position: relative; }
 .pw button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); min-height: 30px; padding: 4px 10px; font-size: 12.5px; background: transparent; border: 0; color: var(--ink-2); }
 .pw input { padding-right: 64px; width: 100%; }
+
+/* Opaque fallback where backdrop-filter is unsupported. Kept after every glass component rule so it wins. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .card, .topbar, .sheet, .drawer, .auth-card, .popover, .toast { background: rgba(255, 255, 255, 0.94); }
+}
 
 /* ---------- responsive */
 @media (max-width: 1200px) {

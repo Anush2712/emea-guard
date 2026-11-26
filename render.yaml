@@ -29,14 +29,12 @@ services:
         value: https://anush2712.github.io
       - key: EMEA_GUARD_APP_BASE_URL
         value: https://anush2712.github.io/emea-guard
-      # Password reset emails (any SMTP provider, e.g. Gmail with an app password, Brevo, Resend SMTP).
-      - key: EMEA_GUARD_SMTP_HOST
-        sync: false
-      - key: EMEA_GUARD_SMTP_PORT
-        value: "587"
-      - key: EMEA_GUARD_SMTP_USERNAME
-        sync: false
-      - key: EMEA_GUARD_SMTP_PASSWORD
+      # Render's proxy appends the client address to X-Forwarded-For (one trusted hop).
+      - key: EMEA_GUARD_TRUSTED_PROXY_HOPS
+        value: "1"
+      # Password reset emails. Render's free tier blocks outbound SMTP, so use the Resend HTTPS API
+      # (free plan; create an API key at resend.com). On a paid instance you can use SMTP instead.
+      - key: EMEA_GUARD_RESEND_API_KEY
         sync: false
       - key: EMEA_GUARD_SMTP_FROM
         sync: false

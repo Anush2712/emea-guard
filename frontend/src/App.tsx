@@ -46,7 +46,8 @@ function Shell({ session, children }: { session: Session; children: ReactNode })
   const loc = useLocation();
   const burgerRef = useRef<HTMLButtonElement>(null);
   const sheetRef = useRef<HTMLElement>(null);
-  useEffect(() => { setMenu(false); setAcct(false); window.scrollTo(0, 0); }, [loc.pathname]);
+  useEffect(() => { setMenu(false); setAcct(false); }, [loc.key]);  // any navigation, including same-path hash links
+  useEffect(() => { window.scrollTo(0, 0); }, [loc.pathname]);
   useEffect(() => {
     if (!menu && !acct) return;
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") { setMenu(false); setAcct(false); burgerRef.current?.focus(); } };
@@ -64,6 +65,7 @@ function Shell({ session, children }: { session: Session; children: ReactNode })
         <div className="crumb">{TITLES[loc.pathname] ?? ""}</div>
         <div className="spacer" />
         <button className="avatar" aria-label="Account menu" aria-expanded={acct} onClick={() => setAcct(!acct)}>{initials}</button>
+        {acct && <div style={{ position: "fixed", inset: 0, zIndex: 34 }} onClick={() => setAcct(false)} aria-hidden />}
         {acct && (
           <div className="popover" role="menu">
             <div className="who"><b>{session.full_name}</b><span className="faint">@{session.username} · {session.role}</span></div>

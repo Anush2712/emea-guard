@@ -120,7 +120,7 @@ Open the app and choose **Create an account**. The first account on a fresh data
 cd backend
 pip install -r requirements-dev.txt
 uvicorn app.main:app --reload            # http://localhost:8000/docs
-pytest -q                                # 42 tests
+pytest -q                                # 49 tests
 
 # frontend
 cd frontend
@@ -144,7 +144,7 @@ Other write actions in the demo (gap updates, policy drafts, rule toggles) apply
 
 ## Testing and CI
 
-- **42 backend tests:** account security (hashing, validation, password change revoking sessions, single-use reset links, rate limiting, admin guard), pure engine unit tests (every rule family, severity matrix, adequacy model), API and workflow tests (auth and roles, the DE → IE scenario end to end, gap routing and deadlines, runtime rule reconfiguration, control cycle → remediation → retest → auto-close, audit tamper detection, report downloads, maker-checker, onboarding).
+- **49 backend tests:** account security (hashing, case-insensitive uniqueness, password change revoking sessions, atomic single-use reset links, identical forgot-password responses, no reset links in non-development logs, spoofed-header rate limiting, admin guard), pure engine unit tests (every rule family, severity matrix, adequacy model), API and workflow tests (auth and roles, the DE → IE scenario end to end, gap routing and deadlines, runtime rule reconfiguration, control cycle → remediation → retest → auto-close, audit tamper detection, report downloads, maker-checker, onboarding).
 - The suite runs on **SQLite and on PostgreSQL 16** in CI.
 - **Engine parity test** between Python and TypeScript.
 - **Docker smoke test**: CI builds the compose stack, waits for health checks and calls the API through nginx.
@@ -186,17 +186,19 @@ docs/              architecture diagram, control engine and regulatory model not
 
 ## Accounts and security
 
-- **Sign-up** with a username you choose, an email and a password (10+ characters with a letter and a number, not containing the username). Usernames and emails are unique and case-insensitive.
+- **Sign-up** with a username you choose, an email and a password (10+ characters with a letter and a number, not containing the username). Usernames are unique case-insensitively in the database itself (a lower-cased key column with a unique index), and emails are stored normalised. A taken username is reported (you need to pick another); a taken email gets a generic message that doesn't confirm the address has an account. Sign-ups are serialised (process lock plus a PostgreSQL advisory lock), so two simultaneous first sign-ups can't both become admin.
 - **Passwords are never stored**, only bcrypt hashes. Sign in with your username or your email.
-- **Change password** from the Account page (current password required). Changing or resetting a password bumps a token version, so every other signed-in session is signed out.
-- **Forgot password** emails a single-use link that expires in 30 minutes. Only the token's SHA-256 hash is stored, a new request invalidates older links, and the response never reveals whether an email is registered. Configure any SMTP provider with the `EMEA_GUARD_SMTP_*` variables; without SMTP in development, the link is logged and shown on screen so local setups still work.
-- **Rate limiting** on sign-in, sign-up, forgot and reset, plus **admin user management** (roles, disabling accounts) with a guard that always keeps one active admin. Every account event goes to the hash-chained audit trail.
+- **Change password** from the Account page (current password required). Changing or resetting a password, or disabling an account, bumps a token version, so every other signed-in session is signed out.
+- **Forgot password** sends a single-use link that expires in 30 minutes. Only the token's SHA-256 hash is stored, a new request invalidates older links, and using a link is an atomic conditional update, so two concurrent uses can't both succeed. A weak new password doesn't burn the link. The API response is identical for registered and unregistered emails, and the lookup runs after the response is sent, so timing doesn't reveal accounts either. **The link only ever travels by email**: never in an API response, and never written to logs outside an explicit development environment.
+- **Email delivery** via the Resend HTTPS API (`EMEA_GUARD_RESEND_API_KEY`) or any SMTP relay (`EMEA_GUARD_SMTP_*`). The API logs an error at startup if neither is configured outside development.
+- **Rate limiting** on sign-in, sign-up, forgot and reset, keyed on the real client address: `X-Forwarded-For` is trusted only for a configured number of proxy hops (`EMEA_GUARD_TRUSTED_PROXY_HOPS`), and nginx overwrites the header, so spoofed values can't open new buckets.
+- **Admin user management** (roles, disabling accounts) with a last-active-admin guard that row-locks the admin rows before counting. Every account event goes to the hash-chained audit trail.
 
 ### Connecting the live site to a real database
 
 GitHub Pages can only host static files. Until an API is connected, the live site runs on the bundled snapshot and keeps accounts **in your browser** (PBKDF2-hashed), and password reset by email is unavailable. To switch it to PostgreSQL-backed accounts with email resets:
 
-1. Deploy the API with the Render Blueprint (`render.yaml`) and set the SMTP variables in Render.
+1. Deploy the API with the Render Blueprint (`render.yaml`) and set `EMEA_GUARD_RESEND_API_KEY` and `EMEA_GUARD_SMTP_FROM` in Render. Render's free tier blocks outbound SMTP, which is why the Blueprint uses Resend's HTTPS API.
 2. In GitHub: **Settings → Secrets and variables → Actions → Variables → New variable** named `EMEA_GUARD_API_URL` with the API URL (for example `https://emea-guard-api.onrender.com`).
 3. Re-run the *Deploy live demo* workflow. The site now signs up, signs in and resets passwords against the API.
 

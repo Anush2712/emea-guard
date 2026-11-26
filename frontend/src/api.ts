@@ -98,7 +98,7 @@ export const auth = {
     const j = await raw<any>("POST", "/api/auth/change-password", { current_password, new_password });
     if (j.access_token) setSession(fromToken(j, session!.username));
   },
-  async forgot(email: string): Promise<{ message: string; dev_reset_link?: string }> {
+  async forgot(email: string): Promise<{ message: string }> {
     if (DEMO) throw new ApiError(503, "Password reset by email needs the hosted API. Accounts on this static site are stored only in this browser.");
     return raw("POST", "/api/auth/forgot-password", { email });
   },

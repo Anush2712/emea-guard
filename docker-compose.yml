@@ -21,9 +21,15 @@ services:
       EMEA_GUARD_DATABASE_URL: postgresql+psycopg://emea_guard:emea_guard@db:5432/emea_guard
       EMEA_GUARD_JWT_SECRET: ${EMEA_GUARD_JWT_SECRET:-change-me-in-production}
       EMEA_GUARD_SEED_ON_STARTUP: "true"
-      EMEA_GUARD_APP_BASE_URL: http://localhost:8080
-      # Optional: SMTP for password reset emails. Without it, the reset link is logged and shown in development.
+      EMEA_GUARD_ENVIRONMENT: ${EMEA_GUARD_ENVIRONMENT:-development}
+      EMEA_GUARD_APP_BASE_URL: ${EMEA_GUARD_APP_BASE_URL:-http://localhost:8080}
+      # nginx (one hop) overwrites X-Forwarded-For with the real client address.
+      EMEA_GUARD_TRUSTED_PROXY_HOPS: "1"
+      # Optional email delivery for password resets (Resend API key, or SMTP). Without either, the reset
+      # link is written to the API log in development only.
+      EMEA_GUARD_RESEND_API_KEY: ${EMEA_GUARD_RESEND_API_KEY:-}
       EMEA_GUARD_SMTP_HOST: ${EMEA_GUARD_SMTP_HOST:-}
+      EMEA_GUARD_SMTP_PORT: ${EMEA_GUARD_SMTP_PORT:-587}
       EMEA_GUARD_SMTP_USERNAME: ${EMEA_GUARD_SMTP_USERNAME:-}
       EMEA_GUARD_SMTP_PASSWORD: ${EMEA_GUARD_SMTP_PASSWORD:-}
       EMEA_GUARD_SMTP_FROM: ${EMEA_GUARD_SMTP_FROM:-EMEA Guard <no-reply@emea-guard.local>}

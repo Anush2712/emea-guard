@@ -480,8 +480,9 @@ class User(Base):
 
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(40), unique=True, index=True)
-    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    username: Mapped[str] = mapped_column(String(40), unique=True, index=True)  # as the user typed it
+    username_key: Mapped[str] = mapped_column(String(40), unique=True, index=True)  # lower-cased: case-insensitive uniqueness in the DB
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)  # stored normalised (lower-case)
     full_name: Mapped[str] = mapped_column(String(100))
     hashed_password: Mapped[str] = mapped_column(String(200))
     app_role: Mapped[str] = mapped_column(String(20))  # admin | analyst | auditor

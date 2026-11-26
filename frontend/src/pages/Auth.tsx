@@ -99,7 +99,7 @@ export function SignUp() {
 
 export function ForgotPassword() {
   const [email, setEmail] = useState(""); const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ message: string; dev_reset_link?: string } | null>(null); const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState<{ message: string } | null>(null); const [err, setErr] = useState<string | null>(null);
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try { setDone(await auth.forgot(email)); } catch (x: any) { setErr(x.message); } finally { setBusy(false); }
@@ -111,7 +111,6 @@ export function ForgotPassword() {
       {done ? (
         <div className="grid" style={{ marginTop: 18 }}>
           <div className="notice ok">{done.message}</div>
-          {done.dev_reset_link && <div className="notice">Email isn't configured on this server, so here is the link (development only): <a href={done.dev_reset_link}>Open reset link</a></div>}
         </div>
       ) : (
         <form onSubmit={submit}>

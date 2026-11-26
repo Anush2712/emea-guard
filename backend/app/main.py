@@ -30,6 +30,9 @@ def init_db() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    s = get_settings()
+    if not s.is_development and not s.email_configured:
+        log.error("No email delivery configured (EMEA_GUARD_RESEND_API_KEY or EMEA_GUARD_SMTP_HOST): password resets cannot be delivered.")
     yield
 
 

@@ -1,17 +1,16 @@
 """Sign-up, login, password change, email password reset and user administration."""
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..auth import admin_only, create_access_token, get_current_user, hash_password, verify_password
 from ..config import get_settings
-from ..database import get_db
+from ..database import SessionLocal, get_db
 from ..models import User
 from ..schemas import Token
 from ..services import accounts as A
@@ -62,17 +61,30 @@ def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
     username = A.validate_username(body.username.strip())
     email = A.validate_email(body.email)
     A.validate_password(body.password, username)
-    if db.execute(select(User).where(func.lower(User.username) == username.lower())).scalar_one_or_none():
-        raise HTTPException(409, "That username is taken. Choose another.")
-    if db.execute(select(User).where(User.email == email)).scalar_one_or_none():
-        raise HTTPException(409, "An account with that email already exists. Sign in or reset your password.")
-    now = datetime.utcnow()
-    u = User(username=username, email=email, full_name=(body.full_name or username).strip(), hashed_password=hash_password(body.password),
-             app_role=A.role_for_new_user(db), is_active=True, token_version=0, created_at=now, last_login_at=now, password_changed_at=now)
-    db.add(u)
-    db.flush()
-    AuditTrail(db).record(actor=u.username, action="USER_REGISTERED", entity_type="User", entity_id=u.username, details={"role": u.app_role})
-    db.commit()
+    taken_username = HTTPException(409, "That username is taken. Choose another.")
+    # Generic on purpose: sign-up must not confirm whether an email address has an account.
+    unavailable_email = HTTPException(409, "That email can't be used for a new account. If it's yours, sign in or reset your password.")
+    now = A.utcnow()
+    with A.account_lock:  # one registration at a time decides "first account becomes admin"
+        try:
+            A.lock_accounts_table(db)
+            if db.execute(select(User.id).where(User.username_key == A.username_key(username))).first():
+                raise taken_username
+            if db.execute(select(User.id).where(User.email == email)).first():
+                raise unavailable_email
+            u = User(username=username, username_key=A.username_key(username), email=email, full_name=(body.full_name or username).strip(),
+                     hashed_password=hash_password(body.password), app_role=A.role_for_new_user(db), is_active=True, token_version=0,
+                     created_at=now, last_login_at=now, password_changed_at=now)
+            db.add(u)
+            db.flush()
+            AuditTrail(db).record(actor=u.username, action="USER_REGISTERED", entity_type="User", entity_id=u.username, details={"role": u.app_role})
+            db.commit()
+        except IntegrityError:  # lost a race with a concurrent sign-up for the same username/email
+            db.rollback()
+            raise taken_username from None
+        except HTTPException:
+            db.rollback()
+            raise
     return _token(u)
 
 
@@ -84,7 +96,7 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends(), db: Ses
         raise HTTPException(401, "Incorrect username or password.")
     if not u.is_active:
         raise HTTPException(403, "This account is disabled. Ask an administrator to re-enable it.")
-    u.last_login_at = datetime.utcnow()
+    u.last_login_at = A.utcnow()
     AuditTrail(db).record(actor=u.username, action="USER_LOGIN", entity_type="User", entity_id=u.username)
     db.commit()
     return _token(u)
@@ -104,42 +116,42 @@ def change_password(body: ChangePasswordIn, request: Request, db: Session = Depe
     if verify_password(body.new_password, user.hashed_password):
         raise HTTPException(422, "Choose a password different from your current one.")
     u = db.get(User, user.id)
-    u.hashed_password, u.password_changed_at = hash_password(body.new_password), datetime.utcnow()
+    u.hashed_password, u.password_changed_at = hash_password(body.new_password), A.utcnow()
     u.token_version = (u.token_version or 0) + 1
     AuditTrail(db).record(actor=u.username, action="PASSWORD_CHANGED", entity_type="User", entity_id=u.username)
     db.commit()
     return {"message": "Password changed. Other signed-in sessions have been signed out.", **_token(u).model_dump()}
 
 
+def _process_reset_request(email: str) -> None:
+    """Runs after the response is sent, so known and unknown emails get the same body and the same latency."""
+    with SessionLocal() as db:
+        u = db.execute(select(User).where(User.email == email, User.is_active.is_(True))).scalar_one_or_none()
+        if not u:
+            return
+        token = A.create_reset_token(db, u)
+        AuditTrail(db).record(actor=u.username, action="PASSWORD_RESET_REQUESTED", entity_type="User", entity_id=u.username)
+        db.commit()
+        A.send_reset_email(u.email, u.username, A.reset_link(token))
+
+
 @router.post("/auth/forgot-password", summary="Email a single-use password reset link")
-def forgot_password(body: ForgotIn, request: Request, background: BackgroundTasks, db: Session = Depends(get_db)):
+def forgot_password(body: ForgotIn, request: Request, background: BackgroundTasks):
     A.limiter.check(request, "forgot", limit=5, window_s=900)
-    generic = {"message": "If an account uses that email, a reset link is on its way. It expires in "
-                          f"{get_settings().password_reset_minutes} minutes."}
-    email = A.normalise_email(body.email)
-    u = db.execute(select(User).where(User.email == email, User.is_active.is_(True))).scalar_one_or_none()
-    if not u:
-        return generic  # never reveal whether an email is registered
-    token = A.create_reset_token(db, u)
-    AuditTrail(db).record(actor=u.username, action="PASSWORD_RESET_REQUESTED", entity_type="User", entity_id=u.username)
-    db.commit()
-    link = A.reset_link(token)
-    s = get_settings()
-    if s.smtp_host:
-        background.add_task(A.send_reset_email, u.email, u.username, link)
-        return generic
-    A.send_reset_email(u.email, u.username, link)  # logs the link
-    if not s.is_production:
-        return {**generic, "dev_reset_link": link, "note": "SMTP is not configured, so the link is shown here (development only)."}
-    return generic
+    background.add_task(_process_reset_request, A.normalise_email(body.email))
+    # Identical for every input: the reset link only ever travels by email, never in this response.
+    return {"message": "If an account uses that email, a reset link is on its way. It expires in "
+                       f"{get_settings().password_reset_minutes} minutes."}
 
 
 @router.post("/auth/reset-password", summary="Set a new password with a reset token")
 def reset_password(body: ResetIn, request: Request, db: Session = Depends(get_db)):
     A.limiter.check(request, "reset", limit=10, window_s=900)
-    u = A.consume_reset_token(db, body.token)
-    A.validate_password(body.new_password, u.username)
-    u.hashed_password, u.password_changed_at = hash_password(body.new_password), datetime.utcnow()
+    user = A.peek_reset_token(db, body.token)
+    A.validate_password(body.new_password, user.username)  # a weak password must not burn the link
+    user_id = A.consume_reset_token(db, body.token)        # atomic: only one concurrent request succeeds
+    u = db.get(User, user_id)
+    u.hashed_password, u.password_changed_at = hash_password(body.new_password), A.utcnow()
     u.token_version = (u.token_version or 0) + 1
     AuditTrail(db).record(actor=u.username, action="PASSWORD_RESET", entity_type="User", entity_id=u.username)
     db.commit()
@@ -159,13 +171,20 @@ def update_user(user_id: int, body: RoleIn, db: Session = Depends(get_db), admin
     if body.app_role is not None and body.app_role not in ("admin", "analyst", "auditor"):
         raise HTTPException(422, "Role must be admin, analyst or auditor.")
     demoting = (body.app_role and body.app_role != "admin") or body.is_active is False
-    if u.app_role == "admin" and demoting:
-        admins = db.execute(select(func.count()).select_from(User).where(User.app_role == "admin", User.is_active.is_(True))).scalar_one()
-        if admins <= 1:
-            raise HTTPException(409, "There must always be at least one active admin.")
     changes = body.model_dump(exclude_none=True)
-    for k, v in changes.items():
-        setattr(u, k, v)
-    AuditTrail(db).record(actor=admin.username, action="USER_UPDATED", entity_type="User", entity_id=u.username, details=changes)
-    db.commit()
+    with A.account_lock:
+        A.lock_accounts_table(db)
+        db.refresh(u)  # re-read under the lock: another admin may have changed this account meanwhile
+        if u.app_role == "admin" and u.is_active and demoting:
+            # Row-lock the active admins (ordered by id) before counting, so two admins demoting each other
+            # concurrently are serialised and the second sees the first's change.
+            if A.active_admin_count_locked(db) <= 1:
+                db.rollback()
+                raise HTTPException(409, "There must always be at least one active admin.")
+        for k, v in changes.items():
+            setattr(u, k, v)
+        if body.is_active is False:
+            u.token_version = (u.token_version or 0) + 1  # sign the disabled user out everywhere
+        AuditTrail(db).record(actor=admin.username, action="USER_UPDATED", entity_type="User", entity_id=u.username, details=changes)
+        db.commit()
     return user_dict(u)
