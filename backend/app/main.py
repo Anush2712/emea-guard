@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 
 from .config import get_settings
 from .database import Base, SessionLocal, engine
-from .routers import core, governance, reports
+from .routers import accounts, core, governance, reports
 
 log = logging.getLogger("emea_guard")
 
@@ -39,15 +39,16 @@ app = FastAPI(
     version="1.0.0",
     description=(
         "Enterprise Data Governance & Regulatory Control Management Platform.\n\n"
-        "Authenticate with **POST /api/auth/login** (demo users: `admin/admin123`, `analyst/analyst123`, "
-        "`auditor/auditor123`), then use the Authorize button.\n\n"
+        "Create an account with **POST /api/auth/register** (the first account becomes admin), then sign in "
+        "with **POST /api/auth/login** or the Authorize button. Passwords are stored as bcrypt hashes; "
+        "password resets use single-use emailed tokens.\n\n"
         "**All data is synthetic.** Regulatory content is a simplified model for demonstration, not legal advice."
     ),
     lifespan=lifespan,
 )
 app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
                    allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
-for r in (core.router, governance.router, reports.router):
+for r in (accounts.router, core.router, governance.router, reports.router):
     app.include_router(r, prefix="/api")
 
 

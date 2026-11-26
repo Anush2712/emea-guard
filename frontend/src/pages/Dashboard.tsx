@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Chart, MUTED, SERIES, SEV_COLOR } from "../components/Chart";
-import { Card, DataTable, ErrorBox, fmtDate, fmtDateTime, Kpi, Loading, PageHead, Sev, Status, useApi } from "../components/ui";
+import { Card, DataTable, ErrorBox, fmtDate, fmtDateTime, Kpi, Loading, PageHead, Sev, Status, useApi, useIsMobile } from "../components/ui";
 import { SEVERITIES, type Dashboard as D, type Gap } from "../types";
 
 export default function Dashboard() {
   const { data, error } = useApi<D>("/api/dashboard/summary");
   const nav = useNavigate();
   const [focus, setFocus] = useState<string>("");
+  const mobile = useIsMobile();
   const trend = useMemo(() => {
     if (!data) return null;
     const by: Record<string, { x: string[]; y: number[] }> = {};
@@ -24,7 +25,7 @@ export default function Dashboard() {
     <>
       <PageHead title="Governance dashboard"
         desc={<>Regional compliance and control health across 10 EMEA jurisdictions, as of {fmtDate(data.as_of)} (assessment cycle {k.latest_cycle}). All data is synthetic.</>}
-        actions={<><button onClick={() => nav("/access?scenario=jd")} className="primary">Run the DE → IE access scenario</button><Link to="/risk"><button>Risk reports</button></Link></>} />
+        actions={<><button onClick={() => nav("/access?scenario=jd")} className="primary">Try the Germany-to-Ireland request</button><button onClick={() => nav("/risk")}>Risk reports</button></>} />
 
       <div className="grid g6">
         <Kpi label="Average residual risk" value={k.avg_residual_risk.toFixed(1)} unit="/100" hint="Inherent × control, gap, overdue, denial factors" />
@@ -38,12 +39,12 @@ export default function Dashboard() {
       <div className="grid g2 mt">
         <Card title="Residual risk by jurisdiction" sub="0–100, higher is riskier">
           <Chart height={330} data={[{
-            type: "bar", orientation: "h", y: risk.map((r) => `${r.name} (${r.code})`), x: risk.map((r) => r.residual_score),
-            marker: { color: risk.map((r) => SEV_COLOR[r.rating]) }, text: risk.map((r) => `${r.residual_score.toFixed(1)} · ${r.rating}`),
+            type: "bar", orientation: "h", y: risk.map((r) => (mobile ? r.code : `${r.name} (${r.code})`)), x: risk.map((r) => r.residual_score),
+            marker: { color: risk.map((r) => SEV_COLOR[r.rating]) }, text: risk.map((r) => (mobile ? r.residual_score.toFixed(0) : `${r.residual_score.toFixed(1)} · ${r.rating}`)),
             textposition: "outside", cliponaxis: false,
             customdata: risk.map((r) => [r.control_effectiveness, r.open_gaps, r.drivers[0]?.label ?? ""]),
             hovertemplate: "<b>%{y}</b><br>Residual %{x:.1f}<br>Control effectiveness %{customdata[0]}%<br>Open gaps %{customdata[1]}<br>Top driver: %{customdata[2]}<extra></extra>",
-          }]} layout={{ margin: { l: 170, r: 90, t: 4, b: 30 }, xaxis: { range: [0, 100] } }} />
+          }]} layout={{ margin: { l: mobile ? 34 : 170, r: mobile ? 30 : 90, t: 4, b: 30 }, xaxis: { range: [0, 100] } }} />
           <div className="legend">{SEVERITIES.map((s) => <span key={s}><i style={{ background: SEV_COLOR[s] }} />{s}</span>)}</div>
         </Card>
         <Card title="Risk trend by quarter" right={

@@ -65,7 +65,7 @@ export default function Controls() {
       <Tabs tabs={["Assessment matrix", "Governance rules", "Control library"]} value={tab} onChange={setTab} />
 
       {tab === "Assessment matrix" && (
-        <div className="grid" style={{ gridTemplateColumns: "1fr 320px", alignItems: "start" }}>
+        <div className="grid split split-320">
           <Card title="Pass rate by control and jurisdiction" right={<select value={cur} onChange={(e) => setCycle(e.target.value)}>{cycles.map((c) => <option key={c}>{c}</option>)}</select>}>
             <div className="legend" style={{ marginBottom: 8 }}><span><i className="r-Effective" />Effective</span><span><i className="r-Partially" />Partially effective</span><span><i className="r-Ineffective" />Ineffective</span><span><i className="r-NA" />Not applicable</span><span className="faint">Click a cell for evidence</span></div>
             <div style={{ overflowX: "auto" }}>

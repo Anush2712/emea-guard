@@ -16,7 +16,6 @@ import yaml
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..auth import hash_password
 from ..database import Base
 from ..models import (
     AccessRequest,
@@ -37,7 +36,6 @@ from ..models import (
     Role,
     Stakeholder,
     TransferMechanism,
-    User,
 )
 from ..services.access_service import submit_access_request
 from ..services.assessments import run_cycle
@@ -202,10 +200,7 @@ def seed(db: Session, random_seed: int = 2712) -> dict:
         db.add(c)
     db.flush()
 
-    for username, full, role, pw in [("admin", "Governance Administrator", "admin", "admin123"),
-                                     ("analyst", "Governance Analyst", "analyst", "analyst123"),
-                                     ("auditor", "Internal Auditor (read-only)", "auditor", "auditor123")]:
-        db.add(User(username=username, full_name=full, app_role=role, hashed_password=hash_password(pw)))
+    # No accounts are seeded: people create their own through sign-up (first account becomes admin).
 
     # ---------------------------------------------------------------- data assets (120)
     asset_n = 0

@@ -17,6 +17,21 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
     seed_on_startup: bool = True
     random_seed: int = 2712
+    # Public URL of the web app, used to build password reset links in emails.
+    app_base_url: str = "http://localhost:8080"
+    password_reset_minutes: int = 30
+    # SMTP for password reset emails. If smtp_host is empty, emails are not sent: the reset link is
+    # logged, and (outside production) returned in the API response so local setups stay usable.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "EMEA Guard <no-reply@emea-guard.local>"
+    smtp_starttls: bool = True
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.lower() == "production"
 
 
 @lru_cache

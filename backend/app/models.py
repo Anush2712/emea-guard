@@ -1,6 +1,6 @@
 """Relational data model for EMEA Guard.
 
-24 governance entities plus two association tables. Every table is synthetic portfolio data.
+25 entities plus two association tables. Every table is synthetic portfolio data.
 """
 from __future__ import annotations
 
@@ -473,19 +473,42 @@ class AuditLog(Base):
 
 
 class User(Base):
-    """Application user (login). Distinct from the synthetic Employee population."""
+    """Platform account (login). Distinct from the synthetic Employee population.
+
+    Passwords are stored only as bcrypt hashes. The first account registered becomes admin.
+    """
 
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(40), unique=True)
+    username: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(100))
     hashed_password: Mapped[str] = mapped_column(String(200))
     app_role: Mapped[str] = mapped_column(String(20))  # admin | analyst | auditor
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    token_version: Mapped[int] = mapped_column(Integer, default=0)  # bumped on password change -> old JWTs rejected
+
+
+class PasswordResetToken(Base):
+    """Single-use, short-lived password reset token. Only its SHA-256 hash is stored."""
+
+    __tablename__ = "password_reset_tokens"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    user: Mapped[User] = relationship()
 
 
 DOMAIN_ENTITIES = [
     Jurisdiction, RegulatoryRequirement, DataClassification, Stakeholder, DataAsset,
     DataLocalisationRecord, TransferMechanism, Role, Permission, Employee, AccessRequest,
     Approval, GovernanceRule, GovernanceControl, ControlAssessment, ComplianceGap,
-    RemediationTask, RiskAssessment, Policy, PolicyVersion, Project, ProjectActivity, AuditLog, User,
+    RemediationTask, RiskAssessment, Policy, PolicyVersion, Project, ProjectActivity, AuditLog, User, PasswordResetToken,
 ]

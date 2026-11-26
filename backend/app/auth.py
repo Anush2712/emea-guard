@@ -27,10 +27,15 @@ def verify_password(password: str, hashed: str) -> bool:
         return False
 
 
-def create_access_token(username: str, app_role: str) -> str:
+def _pwc(user) -> int:
+    """Password-change marker embedded in tokens, so changing a password signs out other sessions."""
+    return getattr(user, "token_version", 0) or 0
+
+
+def create_access_token(user) -> str:
     s = get_settings()
     exp = datetime.now(timezone.utc) + timedelta(minutes=s.jwt_expiry_minutes)
-    return jwt.encode({"sub": username, "role": app_role, "exp": exp}, s.jwt_secret, algorithm=s.jwt_algorithm)
+    return jwt.encode({"sub": user.username, "role": user.app_role, "pwc": _pwc(user), "exp": exp}, s.jwt_secret, algorithm=s.jwt_algorithm)
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -45,7 +50,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     except JWTError as err:
         raise cred_exc from err
     user = db.execute(select(User).where(User.username == username)).scalar_one_or_none()
-    if user is None:
+    if user is None or not user.is_active or payload.get("pwc", 0) != _pwc(user):
         raise cred_exc
     return user
 

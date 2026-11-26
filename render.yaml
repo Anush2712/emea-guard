@@ -23,3 +23,20 @@ services:
         generateValue: true
       - key: EMEA_GUARD_SEED_ON_STARTUP
         value: "true"
+      - key: EMEA_GUARD_ENVIRONMENT
+        value: production
+      - key: EMEA_GUARD_CORS_ORIGINS
+        value: https://anush2712.github.io
+      - key: EMEA_GUARD_APP_BASE_URL
+        value: https://anush2712.github.io/emea-guard
+      # Password reset emails (any SMTP provider, e.g. Gmail with an app password, Brevo, Resend SMTP).
+      - key: EMEA_GUARD_SMTP_HOST
+        sync: false
+      - key: EMEA_GUARD_SMTP_PORT
+        value: "587"
+      - key: EMEA_GUARD_SMTP_USERNAME
+        sync: false
+      - key: EMEA_GUARD_SMTP_PASSWORD
+        sync: false
+      - key: EMEA_GUARD_SMTP_FROM
+        sync: false

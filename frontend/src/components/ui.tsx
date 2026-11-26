@@ -151,3 +151,15 @@ export const fmtDate = (s: string | null | undefined) => (s ? new Date(s.length 
 export const fmtDateTime = (s: string | null | undefined) => (s ? new Date(s + (s.endsWith("Z") ? "" : "Z")).toLocaleString("en-IE", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) : "—");
 
 export function uniq<T>(xs: T[]): T[] { return Array.from(new Set(xs)).sort() as T[]; }
+
+/** True on phone-width screens; charts use it to shorten labels and margins. */
+export function useIsMobile(query = "(max-width: 640px)") {
+  const [m, setM] = useState(() => typeof window !== "undefined" && window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const h = () => setM(mq.matches);
+    mq.addEventListener("change", h);
+    return () => mq.removeEventListener("change", h);
+  }, [query]);
+  return m;
+}

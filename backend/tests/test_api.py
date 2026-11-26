@@ -21,7 +21,7 @@ def test_auth_required_and_roles(client, auditor):
     assert client.get("/api/dashboard/summary", headers=auditor).status_code == 200
     r = client.post("/api/assessments/run", json={}, headers=auditor)
     assert r.status_code == 403
-    assert client.post("/api/auth/login", data={"username": "admin", "password": "wrong"}).status_code == 401
+    assert client.post("/api/auth/login", data={"username": "gov_admin", "password": "wrong"}).status_code == 401
 
 
 def test_dashboard_shape(client, analyst):

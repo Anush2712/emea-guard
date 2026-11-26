@@ -88,7 +88,7 @@ function Simulator({ employees, assets, roles, onDone }: { employees: Employee[]
       empJ: p.e.jurisdiction, employee_id: p.e.id, assetJ: p.a.jurisdiction, asset_id: p.a.id, purpose: p.a.allowed_purposes[0], access_type: "read", approvals } });
     const ieData = (strict: boolean) => (a: Asset) => a.jurisdiction === "IE" && a.contains_personal_data && !a.residency_required &&
       (strict ? a.domain === "Customer" && clean(a) : ["Customer", "Payments", "Marketing"].includes(a.domain));
-    add("JD scenario: Germany employee → Irish customer data", pair("DE", recent, ieData(true)) ?? pair("DE", recent, ieData(false)), ["LINE_MANAGER", "DATA_OWNER"]);
+    add("Germany employee → Irish customer data", pair("DE", recent, ieData(true)) ?? pair("DE", recent, ieData(false)), ["LINE_MANAGER", "DATA_OWNER"]);
     add("UK employee → Swiss client identifying data", pair("GB", recent, (a) => a.jurisdiction === "CH" && a.contains_cid), ["LINE_MANAGER", "DATA_OWNER", "DPO"]);
     add("South Africa hub → German personal data (non-adequate transfer)", pair("ZA", recent, (a) => a.jurisdiction === "DE" && a.contains_personal_data && !a.residency_required && clean(a)), ["LINE_MANAGER", "DATA_OWNER", "DPO"]);
     add("UAE staff → Irish customer data (no adequacy)", pair("AE", recent, (a) => a.jurisdiction === "IE" && a.contains_personal_data && clean(a)), ["LINE_MANAGER", "DATA_OWNER"]);
@@ -99,7 +99,7 @@ function Simulator({ employees, assets, roles, onDone }: { employees: Employee[]
   }, [employees, assets, roles]);
 
   useEffect(() => {
-    const jd = presets.find((p) => p.label.startsWith("JD"));
+    const jd = presets.find((p) => p.label.startsWith("Germany"));
     if (params.get("scenario") === "jd" && jd) set(jd.form);
   }, [params, presets]);
 
@@ -118,11 +118,11 @@ function Simulator({ employees, assets, roles, onDone }: { employees: Employee[]
   };
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "minmax(320px, 420px) 1fr", alignItems: "start" }}>
+    <div className="grid split split-form">
       <Card title="New access request">
         <div className="grid" style={{ gap: 10 }}>
           <div className="faint">Scenarios</div>
-          <div className="grid" style={{ gap: 6 }}>{presets.map((p) => <button key={p.label} onClick={() => { set(p.form); setResult(null); }} style={{ justifyContent: "flex-start", textAlign: "left" }}>▸ {p.label}</button>)}</div>
+          <div className="grid" style={{ gap: 6 }}>{presets.map((p) => <button key={p.label} onClick={() => { set(p.form); setResult(null); }} style={{ justifyContent: "flex-start", textAlign: "left" }}>{p.label}</button>)}</div>
           <div className="row">
             <label className="field" style={{ width: 90 }}>Located in<select value={f.empJ} onChange={(e) => set({ empJ: e.target.value, employee_id: "" })}>{jurs.map((j) => <option key={j}>{j}</option>)}</select></label>
             <label className="field" style={{ flex: 1 }}>Employee<select value={f.employee_id} onChange={(e) => set({ employee_id: Number(e.target.value) })}>

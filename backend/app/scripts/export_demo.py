@@ -79,7 +79,8 @@ def parity_cases(n: int = 400) -> list[dict]:
 def main() -> None:
     api = OUT / "api"
     with TestClient(app) as client:
-        tok = client.post("/api/auth/login", data={"username": "admin", "password": "admin123"}).json()["access_token"]
+        tok = client.post("/api/auth/register", json={"username": "snapshot", "email": "snapshot@example.com",
+                                                      "password": "Sn4pshot-export-only"}).json()["access_token"]
         h = {"Authorization": f"Bearer {tok}"}
         for name, path in ENDPOINTS.items():
             r = client.get(path, headers=h)

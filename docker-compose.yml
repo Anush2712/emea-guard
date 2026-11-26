@@ -21,6 +21,12 @@ services:
       EMEA_GUARD_DATABASE_URL: postgresql+psycopg://emea_guard:emea_guard@db:5432/emea_guard
       EMEA_GUARD_JWT_SECRET: ${EMEA_GUARD_JWT_SECRET:-change-me-in-production}
       EMEA_GUARD_SEED_ON_STARTUP: "true"
+      EMEA_GUARD_APP_BASE_URL: http://localhost:8080
+      # Optional: SMTP for password reset emails. Without it, the reset link is logged and shown in development.
+      EMEA_GUARD_SMTP_HOST: ${EMEA_GUARD_SMTP_HOST:-}
+      EMEA_GUARD_SMTP_USERNAME: ${EMEA_GUARD_SMTP_USERNAME:-}
+      EMEA_GUARD_SMTP_PASSWORD: ${EMEA_GUARD_SMTP_PASSWORD:-}
+      EMEA_GUARD_SMTP_FROM: ${EMEA_GUARD_SMTP_FROM:-EMEA Guard <no-reply@emea-guard.local>}
     depends_on:
       db:
         condition: service_healthy

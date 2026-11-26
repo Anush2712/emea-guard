@@ -5,12 +5,11 @@ from collections import Counter
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from .. import serializers as S
-from ..auth import admin_only, create_access_token, get_current_user, verify_password
+from ..auth import admin_only, get_current_user
 from ..database import get_db
 from ..engine.severity import SEVERITIES
 from ..engine.transfers import adequacy_matrix
@@ -30,30 +29,13 @@ from ..models import (
     RiskAssessment,
     Role,
     Stakeholder,
-    User,
 )
-from ..schemas import JurisdictionIn, Token
+from ..schemas import JurisdictionIn
 from ..services.audit import AuditTrail
 from ..services.lookups import Lookups
 
 router = APIRouter()
 Auth = Depends(get_current_user)
-
-
-# ------------------------------------------------------------------ auth
-@router.post("/auth/login", response_model=Token, tags=["auth"])
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.username == form.username)).scalar_one_or_none()
-    if not user or not verify_password(form.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
-    AuditTrail(db).record(actor=user.username, action="USER_LOGIN", entity_type="User", entity_id=user.username)
-    db.commit()
-    return Token(access_token=create_access_token(user.username, user.app_role), role=user.app_role, full_name=user.full_name)
-
-
-@router.get("/auth/me", tags=["auth"])
-def me(user: User = Auth):
-    return {"username": user.username, "full_name": user.full_name, "role": user.app_role}
 
 
 # ------------------------------------------------------------------ metrics & dashboard
