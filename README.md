@@ -178,7 +178,13 @@ docs/              architecture diagram, control engine and regulatory model not
 ## Limitations and next steps
 
 - Regulatory content is simplified and synthetic; adequacy, residency and secrecy rules are modelled, not legally verified.
-- Schema is created with `create_all`; a production version would use Alembic migrations.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:d328e327924a1a2bf43e13d7047e944c4e8f0c0312995bd38d76b47b9bdc1b9f -->
+
+- Schema is created with `create_all`; a production version would use Alembic migrations. Existing databases from before account registration lack required user columns. For a disposable Compose demo, back up anything you need, then run `docker compose down -v` (deletes all project volume data) and `docker compose up --build` to recreate and reseed. For SQLite, stop the API and start it with a new database file. Register the first admin again. Environments that must retain data need a migration before upgrading.
+
+<!-- /coderabbit-ai-generated:v1 -->
 - Authentication is local JWT; an enterprise deployment would federate with the bank's IdP (SAML/OIDC) and derive roles from groups.
 - Control tests load each cycle's population into memory, which is fine at this scale; at bank scale they would be pushed down into SQL.
 
@@ -186,7 +192,13 @@ docs/              architecture diagram, control engine and regulatory model not
 
 ## Accounts and security
 
-- **Sign-up** with a username you choose, an email and a password (10+ characters with a letter and a number, not containing the username). Usernames are unique case-insensitively in the database itself (a lower-cased key column with a unique index), and emails are stored normalised. Sign-up returns a conflict for a taken username or email. Sign-ups are serialised (process lock plus a PostgreSQL advisory lock), so two simultaneous first sign-ups can't both become admin.
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:3856d1108102518a30e29f397ff1b70d0b5123427599c5fa38a3cabeaefb3840 -->
+
+- **Sign-up** with a username you choose, an email and a password (at least 10 characters, at most 72 UTF-8 bytes, with a letter and a number, not containing the username). Usernames are unique case-insensitively in the database itself (a lower-cased key column with a unique index), and emails are stored normalised. Sign-up returns a conflict for a taken username or email. Sign-ups are serialised (process lock plus a PostgreSQL advisory lock), so two simultaneous first sign-ups can't both become admin.
+
+<!-- /coderabbit-ai-generated:v1 -->
 - **Passwords are never stored**, only bcrypt hashes. Sign in with your username or your email.
 - **Change password** from the Account page (current password required). Changing or resetting a password, or disabling an account, bumps a token version, so every other signed-in session is signed out.
 - **Forgot password** sends a single-use link that expires in 30 minutes. Only the token's SHA-256 hash is stored, a new request invalidates older links, and using a link is an atomic conditional update, so two concurrent uses can't both succeed. A weak new password doesn't burn the link. The API response is identical for registered and unregistered emails, and the lookup runs after the response is sent, so timing doesn't reveal accounts either. **The link only ever travels by email**: never in an API response, and never written to logs outside an explicit development environment.

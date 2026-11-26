@@ -71,6 +71,8 @@ def password_problems(password: str, username: str = "") -> list[str]:
         problems.append("not a common password or your username")
     if len(password) > 128:
         problems.append("no more than 128 characters")
+    if len(password.encode("utf-8")) > 72:
+        problems.append("no more than 72 UTF-8 bytes")
     return problems
 
 

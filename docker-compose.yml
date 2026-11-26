@@ -21,7 +21,7 @@ services:
       EMEA_GUARD_DATABASE_URL: postgresql+psycopg://emea_guard:emea_guard@db:5432/emea_guard
       EMEA_GUARD_JWT_SECRET: ${EMEA_GUARD_JWT_SECRET:-change-me-in-production}
       EMEA_GUARD_SEED_ON_STARTUP: "true"
-      EMEA_GUARD_ENVIRONMENT: ${EMEA_GUARD_ENVIRONMENT:-development}
+      EMEA_GUARD_ENVIRONMENT: ${EMEA_GUARD_ENVIRONMENT:-production}
       EMEA_GUARD_APP_BASE_URL: ${EMEA_GUARD_APP_BASE_URL:-http://localhost:8080}
       # nginx (one hop) overwrites X-Forwarded-For with the real client address.
       EMEA_GUARD_TRUSTED_PROXY_HOPS: "1"

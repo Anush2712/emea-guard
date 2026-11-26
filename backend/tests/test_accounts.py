@@ -7,7 +7,13 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from app.config import get_settings
 from app.models import PasswordResetToken, User
+
+
+@pytest.fixture
+def development_environment(monkeypatch):
+    monkeypatch.setattr(get_settings(), "environment", "development")
 
 
 def reg(client, username, email=None, password="Str0ngPassw0rd!"):
@@ -50,6 +56,11 @@ def test_registration_validation(client, admin):
     assert reg(client, "Gov_Admin").status_code == 409                     # case-insensitive
 
 
+def test_password_utf8_boundary(client, admin):
+    assert reg(client, "byte_limit", password="a1" + "é" * 35).status_code == 201
+    assert reg(client, "too_long", password="a1" + "é" * 35 + "b").status_code == 422
+
+
 def test_login_with_username_or_email(client, admin):
     by_name = client.post("/api/auth/login", data={"username": "GOV_ADMIN", "password": "Str0ngPassw0rd!"})
     by_mail = client.post("/api/auth/login", data={"username": "Gov_Admin@Example.com", "password": "Str0ngPassw0rd!"})
@@ -69,6 +80,7 @@ def test_change_password_signs_out_old_tokens(client, admin):
     assert client.post("/api/auth/login", data={"username": "changer", "password": "Br4ndNewPassword"}).status_code == 200
 
 
+@pytest.mark.usefixtures("development_environment")
 def test_forgot_and_reset_password_flow(client, admin, db, caplog):
     reg(client, "forgetful")
     token = reset_link_from_log(client, caplog, "Forgetful@example.com")
@@ -99,6 +111,7 @@ def test_reset_link_is_never_logged_outside_development(client, admin, caplog, m
         assert "reset requested" in caplog.text.lower()
 
 
+@pytest.mark.usefixtures("development_environment")
 def test_new_reset_request_invalidates_previous_link(client, admin, caplog):
     reg(client, "twice")
     first = reset_link_from_log(client, caplog, "twice@example.com")
@@ -106,6 +119,7 @@ def test_new_reset_request_invalidates_previous_link(client, admin, caplog):
     assert client.post("/api/auth/reset-password", json={"token": first, "new_password": "Rec0veredPassword"}).status_code == 400
 
 
+@pytest.mark.usefixtures("development_environment")
 def test_reset_token_consumption_is_atomic(client, admin, db, caplog):
     from app.services import accounts as A
     reg(client, "atomic_user")
@@ -128,7 +142,9 @@ def test_usernames_are_unique_case_insensitively_in_the_database(client, admin, 
 
 def test_signup_does_not_reveal_whether_an_email_is_registered(client, admin):
     r = reg(client, "someone_new", email="gov_admin@example.com")
-    assert r.status_code == 409 and "already exists" not in r.json()["detail"]
+    duplicate_name = reg(client, "GOV_ADMIN", email="unregistered@example.com")
+    assert duplicate_name.status_code == r.status_code == 409
+    assert duplicate_name.json() == r.json()
 
 
 def test_spoofed_forwarded_for_header_cannot_bypass_rate_limit(client, admin):
@@ -170,3 +186,26 @@ def test_admin_cannot_remove_last_admin_and_non_admins_cannot_manage_users(clien
 def test_login_rate_limit(client, admin):
     codes = [client.post("/api/auth/login", data={"username": "gov_admin", "password": "nope"}).status_code for _ in range(22)]
     assert 429 in codes
+
+
+def test_unset_environment_disables_development_logging(monkeypatch):
+    from app.config import Settings
+
+    monkeypatch.delenv("EMEA_GUARD_ENVIRONMENT", raising=False)
+    assert not Settings(_env_file=None).is_development
+
+
+def test_resend_rejects_local_default_sender(monkeypatch):
+    import asyncio
+
+    from app.main import app, lifespan
+
+    monkeypatch.setattr(get_settings(), "resend_api_key", "test-key")
+    monkeypatch.setattr(get_settings(), "smtp_from", "EMEA Guard <no-reply@emea-guard.local>")
+
+    async def start():
+        async with lifespan(app):
+            pass
+
+    with pytest.raises(RuntimeError, match="EMEA_GUARD_SMTP_FROM"):
+        asyncio.run(start())

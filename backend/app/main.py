@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from email.utils import parseaddr
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,8 +30,12 @@ def init_db() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
     s = get_settings()
+    if s.resend_api_key:
+        sender = parseaddr(s.smtp_from)[1]
+        if "@" not in sender or "." not in sender.rsplit("@", 1)[1] or sender.lower().endswith(".local"):
+            raise RuntimeError("Set EMEA_GUARD_SMTP_FROM to an address on your verified Resend domain.")
+    init_db()
     if not s.is_development and not s.email_configured:
         log.error("No email delivery configured (EMEA_GUARD_RESEND_API_KEY or EMEA_GUARD_SMTP_HOST): password resets cannot be delivered.")
     yield

@@ -61,17 +61,15 @@ def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
     username = A.validate_username(body.username.strip())
     email = A.validate_email(body.email)
     A.validate_password(body.password, username)
-    taken_username = HTTPException(409, "That username is taken. Choose another.")
-    # Generic on purpose: sign-up must not confirm whether an email address has an account.
-    unavailable_email = HTTPException(409, "That email can't be used for a new account. If it's yours, sign in or reset your password.")
+    conflict = HTTPException(409, "Unable to register with those account details.")
     now = A.utcnow()
     with A.account_lock:  # one registration at a time decides "first account becomes admin"
         try:
             A.lock_accounts_table(db)
             if db.execute(select(User.id).where(User.username_key == A.username_key(username))).first():
-                raise taken_username
+                raise conflict
             if db.execute(select(User.id).where(User.email == email)).first():
-                raise unavailable_email
+                raise conflict
             u = User(username=username, username_key=A.username_key(username), email=email, full_name=(body.full_name or username).strip(),
                      hashed_password=hash_password(body.password), app_role=A.role_for_new_user(db), is_active=True, token_version=0,
                      created_at=now, last_login_at=now, password_changed_at=now)
@@ -81,7 +79,7 @@ def register(body: RegisterIn, request: Request, db: Session = Depends(get_db)):
             db.commit()
         except IntegrityError:  # lost a race with a concurrent sign-up for the same username/email
             db.rollback()
-            raise taken_username from None
+            raise conflict from None
         except HTTPException:
             db.rollback()
             raise

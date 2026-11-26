@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="EMEA_GUARD_", extra="ignore")
 
     app_name: str = "EMEA Guard"
-    environment: str = "development"
+    environment: str = "production"
     # PostgreSQL is the primary database. SQLite is supported for tests and the static demo export.
     database_url: str = "postgresql+psycopg://emea_guard:emea_guard@localhost:5432/emea_guard"
     jwt_secret: str = "change-me-in-production"
