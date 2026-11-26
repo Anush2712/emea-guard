@@ -119,7 +119,7 @@ Open the app and choose **Create an account**. The first account on a fresh data
 # backend (needs PostgreSQL, or set EMEA_GUARD_DATABASE_URL=sqlite:///./emea.db)
 cd backend
 pip install -r requirements-dev.txt
-uvicorn app.main:app --reload            # http://localhost:8000/docs
+uvicorn app.main:app --reload --no-proxy-headers  # http://localhost:8000/docs
 pytest -q                                # 49 tests
 
 # frontend
@@ -186,12 +186,12 @@ docs/              architecture diagram, control engine and regulatory model not
 
 ## Accounts and security
 
-- **Sign-up** with a username you choose, an email and a password (10+ characters with a letter and a number, not containing the username). Usernames are unique case-insensitively in the database itself (a lower-cased key column with a unique index), and emails are stored normalised. A taken username is reported (you need to pick another); a taken email gets a generic message that doesn't confirm the address has an account. Sign-ups are serialised (process lock plus a PostgreSQL advisory lock), so two simultaneous first sign-ups can't both become admin.
+- **Sign-up** with a username you choose, an email and a password (10+ characters with a letter and a number, not containing the username). Usernames are unique case-insensitively in the database itself (a lower-cased key column with a unique index), and emails are stored normalised. Sign-up returns a conflict for a taken username or email. Sign-ups are serialised (process lock plus a PostgreSQL advisory lock), so two simultaneous first sign-ups can't both become admin.
 - **Passwords are never stored**, only bcrypt hashes. Sign in with your username or your email.
 - **Change password** from the Account page (current password required). Changing or resetting a password, or disabling an account, bumps a token version, so every other signed-in session is signed out.
 - **Forgot password** sends a single-use link that expires in 30 minutes. Only the token's SHA-256 hash is stored, a new request invalidates older links, and using a link is an atomic conditional update, so two concurrent uses can't both succeed. A weak new password doesn't burn the link. The API response is identical for registered and unregistered emails, and the lookup runs after the response is sent, so timing doesn't reveal accounts either. **The link only ever travels by email**: never in an API response, and never written to logs outside an explicit development environment.
 - **Email delivery** via the Resend HTTPS API (`EMEA_GUARD_RESEND_API_KEY`) or any SMTP relay (`EMEA_GUARD_SMTP_*`). The API logs an error at startup if neither is configured outside development.
-- **Rate limiting** on sign-in, sign-up, forgot and reset, keyed on the real client address: `X-Forwarded-For` is trusted only for a configured number of proxy hops (`EMEA_GUARD_TRUSTED_PROXY_HOPS`), and nginx overwrites the header, so spoofed values can't open new buckets.
+- **Rate limiting** on sign-in, sign-up, forgot and reset uses the connection peer unless that peer matches `EMEA_GUARD_TRUSTED_PROXY_NETWORKS` (a JSON list of CIDRs) and `EMEA_GUARD_TRUSTED_PROXY_HOPS` is positive. Compose trusts only nginx, which overwrites the forwarded address. Deployments without verified ingress settings, including Render by default, can share a bucket among clients behind the same proxy. When starting Uvicorn yourself, pass `--no-proxy-headers` so the application can check the original connection peer.
 - **Admin user management** (roles, disabling accounts) with a last-active-admin guard that row-locks the admin rows before counting. Every account event goes to the hash-chained audit trail.
 
 ### Connecting the live site to a real database

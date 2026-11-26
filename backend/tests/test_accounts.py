@@ -1,5 +1,6 @@
 """Sign-up, login, password change and email password reset."""
 import logging
+from ipaddress import ip_network
 
 import pytest
 from fastapi import HTTPException
@@ -136,15 +137,27 @@ def test_spoofed_forwarded_for_header_cannot_bypass_rate_limit(client, admin):
     assert 429 in codes
 
 
-def test_trusted_proxy_hops_uses_the_proxy_appended_address(monkeypatch):
+def test_forwarded_address_requires_a_trusted_peer_and_hop_count(monkeypatch):
     from starlette.requests import Request
 
     from app.config import get_settings
     from app.services.accounts import client_ip
-    req = Request({"type": "http", "headers": [(b"x-forwarded-for", b"6.6.6.6, 203.0.113.9")], "client": ("172.18.0.5", 1234)})
-    assert client_ip(req) == "172.18.0.5"             # hops=0: header ignored
-    monkeypatch.setattr(get_settings(), "trusted_proxy_hops", 1)
-    assert client_ip(req) == "203.0.113.9"            # rightmost entry, appended by our proxy, not the spoofed left one
+
+    def request_from(peer, forwarded):
+        return Request({"type": "http", "headers": [(b"x-forwarded-for", forwarded)], "client": (peer, 1234)})
+
+    proxy = "172.18.0.5"
+    forwarded = b"192.0.2.6, 203.0.113.9, 172.18.0.4"
+    settings = get_settings()
+    monkeypatch.setattr(settings, "trusted_proxy_hops", 2)
+    assert client_ip(request_from(proxy, forwarded)) == proxy  # no configured trusted peers
+    monkeypatch.setattr(settings, "trusted_proxy_networks", [ip_network(f"{proxy}/32")])
+    assert client_ip(request_from("172.18.0.6", forwarded)) == "172.18.0.6"
+    assert client_ip(request_from(proxy, forwarded)) == "203.0.113.9"
+    assert client_ip(request_from(proxy, b"203.0.113.9")) == proxy
+    assert client_ip(request_from(proxy, b"203.0.113.9, , 172.18.0.4")) == proxy
+    monkeypatch.setattr(settings, "trusted_proxy_hops", 0)
+    assert client_ip(request_from(proxy, forwarded)) == proxy
 
 
 def test_admin_cannot_remove_last_admin_and_non_admins_cannot_manage_users(client, admin, analyst):

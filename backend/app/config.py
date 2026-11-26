@@ -1,6 +1,7 @@
 """Application settings, loaded from environment variables (12-factor style)."""
 from functools import lru_cache
 
+from pydantic import IPvAnyNetwork
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,7 +33,8 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = "EMEA Guard <no-reply@emea-guard.local>"
     smtp_starttls: bool = True
-    # Number of reverse proxies in front of the API that append to X-Forwarded-For (0 = trust no header).
+    # Only these immediate peers may supply X-Forwarded-For; zero hops ignores the header.
+    trusted_proxy_networks: list[IPvAnyNetwork] = []
     trusted_proxy_hops: int = 0
 
     @property

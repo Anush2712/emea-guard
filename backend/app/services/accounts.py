@@ -13,6 +13,7 @@ import urllib.request
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from ipaddress import ip_address
 
 from fastapi import HTTPException, Request
 from sqlalchemy import func, select, text, update
@@ -197,16 +198,23 @@ def send_reset_email(to: str, username: str, link: str) -> bool:
 def client_ip(request: Request) -> str:
     """Client address for rate limiting.
 
-    X-Forwarded-For is trusted only when the API sits behind a known number of proxies
-    (EMEA_GUARD_TRUSTED_PROXY_HOPS). The address is taken that many entries from the RIGHT, i.e. the one
-    appended by our own outermost proxy, so client-supplied entries on the left are ignored.
+    Only configured immediate proxy peers can supply X-Forwarded-For. The configured
+    hop count selects the address from the right of the trusted proxy chain.
     """
-    hops = get_settings().trusted_proxy_hops
+    settings = get_settings()
+    hops = settings.trusted_proxy_hops
     peer = request.client.host if request.client else "?"
-    if hops <= 0:
+    if hops <= 0 or not settings.trusted_proxy_networks:
         return peer
-    parts = [p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()]
-    return parts[-hops] if len(parts) >= hops else peer
+    try:
+        if not any(ip_address(peer) in network for network in settings.trusted_proxy_networks):
+            return peer
+        parts = [part.strip() for value in request.headers.getlist("x-forwarded-for") for part in value.split(",")]
+        if len(parts) >= hops:
+            return str(ip_address(parts[-hops]))
+    except ValueError:
+        pass
+    return peer
 
 
 class RateLimiter:
