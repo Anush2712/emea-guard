@@ -27,7 +27,9 @@ export default function Controls() {
     return m;
   }, [assess.data, cur]);
   const trend = useMemo(() => cycles.map((c) => {
-    const xs = (assess.data ?? []).filter((a) => a.cycle === c && a.result !== "Not Applicable");
+    const last = new Map<string, Assessment>();  // latest run per control x jurisdiction within the cycle
+    (assess.data ?? []).filter((a) => a.cycle === c).forEach((a) => last.set(`${a.control_code}|${a.jurisdiction}`, a));
+    const xs = [...last.values()].filter((a) => a.result !== "Not Applicable");
     return { c, eff: (100 * xs.filter((a) => a.result === "Effective").length) / Math.max(1, xs.length), n: xs.length };
   }), [assess.data, cycles]);
 

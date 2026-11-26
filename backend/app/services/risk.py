@@ -41,7 +41,8 @@ def compute_risk(db: Session, lk: Lookups, audit: AuditTrail | None, *, as_of: d
     since = cutoff - timedelta(days=180)
     requests = list(db.execute(
         select(AccessRequest.decision, DataAsset.jurisdiction_id).join(DataAsset, AccessRequest.asset_id == DataAsset.id)
-        .where(AccessRequest.requested_at <= cutoff, AccessRequest.requested_at >= since, AccessRequest.evaluation_trace.isnot(None))
+        .where(AccessRequest.requested_at <= cutoff, AccessRequest.requested_at >= since,
+               AccessRequest.request_ref.like("AR-%"))  # exclude legacy, never-evaluated entitlements
     ).all())
 
     results = []
