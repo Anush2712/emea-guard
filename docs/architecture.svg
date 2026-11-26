@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#5b6576"/></marker>
+    <style>
+      .t{font-size:15px;font-weight:700;fill:#0b1b33}.s{font-size:12px;fill:#3d4757}.x{font-size:11px;fill:#5b6576}
+      .lane{font-size:11px;font-weight:700;letter-spacing:.08em;fill:#8a93a3}
+      .ln{stroke:#5b6576;stroke-width:1.6;fill:none;marker-end:url(#a)}
+      .dash{stroke:#8a93a3;stroke-width:1.4;fill:none;stroke-dasharray:5 4;marker-end:url(#a)}
+    </style>
+  </defs>
+  <rect width="1200" height="780" fill="#f7f8fa"/>
+  <text x="40" y="44" font-size="22" font-weight="800" fill="#0b1b33">EMEA Guard · System architecture</text>
+  <text x="40" y="66" class="s">One application, nine integrated capabilities. All data is synthetic.</text>
+
+  <!-- lanes -->
+  <text x="40" y="104" class="lane">PRESENTATION</text>
+  <text x="40" y="264" class="lane">API</text>
+  <text x="40" y="374" class="lane">SERVICES</text>
+  <text x="40" y="534" class="lane">ENGINE</text>
+  <text x="40" y="664" class="lane">DATA</text>
+
+  <!-- users -->
+  <rect x="40" y="116" width="170" height="104" rx="10" fill="#fff" stroke="#d5dbe5"/>
+  <text x="56" y="142" class="t">Users</text>
+  <text x="56" y="164" class="s">Governance admin</text>
+  <text x="56" y="182" class="s">Governance analyst</text>
+  <text x="56" y="200" class="s">Auditor (read-only)</text>
+
+  <!-- react -->
+  <rect x="250" y="116" width="560" height="104" rx="10" fill="#eef5fe" stroke="#9dc8f7"/>
+  <text x="268" y="142" class="t">React + TypeScript SPA (Vite) · Plotly dashboards</text>
+  <text x="268" y="164" class="s">Dashboard · Access control simulator · Data localisation · Control assessments</text>
+  <text x="268" y="182" class="s">Gaps &amp; remediation · Jurisdictions · Data &amp; people · Policies · Stakeholders</text>
+  <text x="268" y="200" class="s">Risk &amp; reports (Excel / CSV / HTML downloads) · Audit trail verification</text>
+  <path d="M210 168H246" class="ln"/>
+
+  <!-- pages demo -->
+  <rect x="850" y="116" width="310" height="104" rx="10" fill="#fff8e6" stroke="#f6dea0"/>
+  <text x="868" y="142" class="t">GitHub Pages live demo</text>
+  <text x="868" y="164" class="s">Static API snapshot exported by the backend</text>
+  <text x="868" y="182" class="s">TypeScript mirror of the access engine,</text>
+  <text x="868" y="200" class="s">parity-tested on 400 Python decisions</text>
+  <path d="M810 168H846" class="dash"/>
+
+  <!-- api -->
+  <rect x="250" y="236" width="910" height="96" rx="10" fill="#fff" stroke="#d5dbe5"/>
+  <text x="268" y="262" class="t">FastAPI · REST + OpenAPI/Swagger · JWT auth · role-based authorisation (admin / analyst / auditor)</text>
+  <text x="268" y="284" class="s">/auth · /dashboard · /jurisdictions (+ onboarding) · /requirements · /assets · /employees · /roles · /access-requests/evaluate</text>
+  <text x="268" y="302" class="s">/localisation · /rules (runtime config) · /controls · /assessments/run · /gaps (+ remediate) · /remediation-tasks · /risk</text>
+  <text x="268" y="320" class="s">/policies (+ versions, maker-checker approve) · /stakeholders · /projects · /audit (+ verify) · /reports/*.xlsx|csv|html</text>
+  <path d="M530 220V232" class="ln"/>
+  <text x="540" y="230" class="x">nginx proxies /api (same origin)</text>
+
+  <!-- services -->
+  <g>
+    <rect x="40" y="386" width="270" height="118" rx="10" fill="#fff" stroke="#d5dbe5"/>
+    <text x="56" y="410" class="t">Access service</text>
+    <text x="56" y="430" class="s">Builds context from PostgreSQL</text>
+    <text x="56" y="448" class="s">Persists decision + approvals</text>
+    <text x="56" y="466" class="s">Raises gaps, routes owners, SLA</text>
+    <text x="56" y="484" class="s">Refreshes regional risk</text>
+
+    <rect x="330" y="386" width="270" height="118" rx="10" fill="#fff" stroke="#d5dbe5"/>
+    <text x="346" y="410" class="t">Control assessment engine</text>
+    <text x="346" y="430" class="s">16 automated control tests</text>
+    <text x="346" y="448" class="s">per jurisdiction per cycle</text>
+    <text x="346" y="466" class="s">Effective / Partial / Ineffective</text>
+    <text x="346" y="484" class="s">Auto-closes gaps on retest</text>
+
+    <rect x="620" y="386" width="260" height="118" rx="10" fill="#fff" stroke="#d5dbe5"/>
+    <text x="636" y="410" class="t">Gaps · risk · policy</text>
+    <text x="636" y="430" class="s">De-duplicated gap lifecycle</text>
+    <text x="636" y="448" class="s">Residual risk scoring per jurisdiction</text>
+    <text x="636" y="466" class="s">Policy versions, maker-checker</text>
+    <text x="636" y="484" class="s">Jurisdiction onboarding checks</text>
+
+    <rect x="900" y="386" width="260" height="118" rx="10" fill="#fff" stroke="#d5dbe5"/>
+    <text x="916" y="410" class="t">Reporting engine</text>
+    <text x="916" y="430" class="s">SQL → Pandas DataFrames</text>
+    <text x="916" y="448" class="s">10-sheet Excel risk report</text>
+    <text x="916" y="466" class="s">Plotly executive HTML report</text>
+    <text x="916" y="484" class="s">Gap register CSV</text>
+  </g>
+  <path d="M600 332V382" class="ln"/>
+
+  <!-- engine -->
+  <rect x="40" y="546" width="700" height="92" rx="10" fill="#eaf6ec" stroke="#bfe6c5"/>
+  <text x="56" y="570" class="t">Access decision engine · rules.yaml (20 configurable rules: deny / escalate / flag)</text>
+  <text x="56" y="592" class="s">RBAC · least privilege · leaver · training · SoD · approvals · residency · adequacy &amp; SCC/IDTA · banking secrecy</text>
+  <text x="56" y="610" class="s">purpose limitation · classification · ownership · encryption · retention · processor agreements</text>
+  <text x="56" y="628" class="s">10-step pipeline trace · request risk score 0-100</text>
+  <rect x="760" y="546" width="400" height="92" rx="10" fill="#eaf6ec" stroke="#bfe6c5"/>
+  <text x="776" y="570" class="t">Shared risk model</text>
+  <text x="776" y="592" class="s">4-level severity: impact × likelihood matrix</text>
+  <text x="776" y="610" class="s">SLA: Critical 7d · High 30d · Medium 60d · Low 90d</text>
+  <text x="776" y="628" class="s">EMEA adequacy model (EEA, UK, CH, UAE, ZA)</text>
+  <path d="M175 504V542" class="ln"/>
+  <path d="M465 504V542" class="ln"/>
+
+  <!-- data -->
+  <rect x="40" y="676" width="860" height="84" rx="10" fill="#0b1b33"/>
+  <text x="56" y="700" font-size="15" font-weight="700" fill="#fff">PostgreSQL 16 · 24 entities (SQLAlchemy 2.0)</text>
+  <text x="56" y="722" font-size="11.5" fill="#c9d4e5">jurisdictions · requirements · classifications · assets · localisation · transfer mechanisms · employees · roles ·</text>
+  <text x="56" y="738" font-size="11.5" fill="#c9d4e5">permissions · access requests · approvals · rules · controls · assessments · gaps · remediation tasks · risk ·</text><text x="56" y="754" font-size="11.5" fill="#c9d4e5">policies · policy versions · stakeholders · projects · project activities · audit log · users</text>
+  <rect x="920" y="676" width="240" height="84" rx="10" fill="#fff" stroke="#d5dbe5"/>
+  <text x="936" y="704" class="t">Hash-chained audit log</text>
+  <text x="936" y="726" class="s">sha256(prev_hash + payload)</text>
+  <text x="936" y="744" class="x">tamper detection via /audit/verify</text>
+  <path d="M750 504V672" class="ln"/>
+</svg>

@@ -1,0 +1,21 @@
+[project]
+name = "emea-guard"
+version = "1.0.0"
+description = "Enterprise Data Governance & Regulatory Control Management Platform (synthetic data)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["B008", "E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/seed/generate.py" = ["B023"]  # closures are called within the same loop iteration
