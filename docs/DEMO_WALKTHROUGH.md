@@ -4,7 +4,7 @@ Use the live demo (https://anush2712.github.io/emea-guard/) or `docker compose u
 
 1. **Dashboard.** Residual risk per jurisdiction, coloured and labelled on the 4-level scale. Use the trend selector to highlight one jurisdiction against the others. Point out the priority gaps: each has an owner and an SLA date.
 2. **Access control → "JD scenario: Germany employee → Irish customer data" → Evaluate.** Walk the 10-step pipeline and the 20-rule table. Untick *Data owner* and re-evaluate: the decision becomes *Pending approval* (escalate rule `APR-002`).
-3. **"UK employee → Swiss client identifying data".** Denied by residency (`LOC-001`) and banking secrecy (`LOC-003`): preventive controls doing their job, so no gap is raised.
+3. **"UK employee → Swiss client identifying data".** Denied by residency (`LOC-001`) and banking secrecy (`LOC-003`). Those are preventive controls doing their job, so they raise no gap themselves. The gap you do see comes from an unrelated weakness the same check surfaced on that asset (`DAT-004`: records held past their retention period), which shows how one access check doubles as a detective control on the data.
 4. **"South Africa hub → German personal data".** Denied by `LOC-002` because the DE→ZA SCC expired, and a compliance gap is raised and routed to the German DPO with a deadline. That is the difference between a control working and a control being broken.
 5. **Data localisation → Adequacy matrix.** Which flows are adequate, covered by a mechanism, or exposed.
 6. **Control assessments.** 16 automated tests × 10 jurisdictions per cycle. Click a red cell to see the exact exceptions (evidence). Show the Governance rules tab: an admin can switch a rule off or change its severity at runtime.
